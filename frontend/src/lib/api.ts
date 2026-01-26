@@ -56,7 +56,7 @@ export async function queryRAG(sessionId: string, query: string, topK: number = 
         },
         body: JSON.stringify({
             session_id: sessionId,
-            query: query,
+            question: query,
             top_k: topK,
         }),
     });
