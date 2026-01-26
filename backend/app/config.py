@@ -35,7 +35,7 @@ class Settings(BaseSettings):
     top_k: int = 4
     
     # Model Configuration
-    model_name: str = "gpt-4o-mini"
+    model_name: str = "gpt-4o-mini"  # or "deepseek-chat"
     embedding_model: str = "text-embedding-3-small"
     
     # Server Configuration
