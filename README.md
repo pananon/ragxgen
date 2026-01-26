@@ -353,10 +353,10 @@ This project is for educational and portfolio purposes.
 
 Built by a software engineer passionate about AI/ML systems.
 
-- **GitHub**: [github.com/yourusername](https://github.com)
-- **LinkedIn**: [linkedin.com/in/yourprofile](https://linkedin.com)
-
----
+- **GitHub**: [github.com/pananon](https://github.com)
+- **LinkedIn**: [linkedin.com/in/harimangalp](https://linkedin.com)
+- **Email**: [contact@mangalcore.com](mailto:contact@mangalcore.com)
+- **Website**: [mangalcore.com](https://mangalcore.com)
 
 <div align="center">
 
