@@ -1,0 +1,25 @@
+# FastAPI and server
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+python-multipart==0.0.6
+
+# RAG dependencies
+langchain==0.1.0
+langchain-openai==0.0.2
+langchain-community==0.0.12
+
+# Vector store
+faiss-cpu==1.7.4
+
+# Document processing
+pypdf==3.17.4
+python-docx==1.1.0
+
+# Environment and validation
+pydantic==2.5.3
+pydantic-settings==2.1.0
+python-dotenv==1.0.0
+
+# Utilities
+tiktoken==0.5.2
+numpy==1.26.3
