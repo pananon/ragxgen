@@ -12,8 +12,7 @@ const footerLinks = {
         { label: "About", href: "/about" },
     ],
     resources: [
-        { label: "GitHub", href: "https://github.com" },
-        { label: "Documentation", href: "/docs" },
+        { label: "GitHub", href: "https://github.com/pananon/ragxgen" },
     ],
 };
 
