@@ -29,7 +29,7 @@ export default function Footer() {
                                 <Sparkles className="w-5 h-5 text-white" />
                             </div>
                             <span className="font-bold text-xl">
-                                RAG <span className="text-primary">Lab</span>
+                                Rag<span className="text-primary">XGen</span>
                             </span>
                         </Link>
                         <p className="text-foreground-muted text-sm leading-relaxed">
@@ -93,7 +93,7 @@ export default function Footer() {
                 {/* Bottom section */}
                 <div className="mt-12 pt-8 border-t border-border flex flex-col md:flex-row items-center justify-between gap-4">
                     <p className="text-foreground-muted text-sm">
-                        © {new Date().getFullYear()} RAG Lab. Built for learning and demonstration.
+                        © {new Date().getFullYear()} RagXGen. Built for learning and demonstration.
                     </p>
 
                     {/* Social links */}

@@ -337,7 +337,7 @@ export default function EvaluationPage() {
                         Ready to see how this was built?
                     </h2>
                     <p className="text-foreground-muted mb-8">
-                        Explore the design decisions and technical choices behind RAG Lab.
+                        Explore the design decisions and technical choices behind RagXGen.
                     </p>
                     <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                         <Link href="/about" className="btn-primary inline-flex items-center gap-2">

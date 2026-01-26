@@ -163,7 +163,7 @@ export default function DemoPage() {
                     className="mb-8"
                 >
                     <h1 className="text-3xl font-bold mb-2">
-                        Live <span className="gradient-text">RAG Demo</span>
+                        Live <span className="gradient-text">RagXGen Demo</span>
                     </h1>
                     <p className="text-foreground-muted">
                         Upload documents and ask questions. See retrieval and generation in action.

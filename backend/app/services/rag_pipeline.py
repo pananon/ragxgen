@@ -16,10 +16,10 @@ Design Philosophy:
 import os
 from typing import List, Optional, Tuple
 
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.schema import Document
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_core.documents import Document
 from langchain_openai import ChatOpenAI
-from langchain.prompts import ChatPromptTemplate
+from langchain_core.prompts import ChatPromptTemplate
 from pypdf import PdfReader
 
 from app.config import get_settings

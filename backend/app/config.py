@@ -1,5 +1,5 @@
 """
-Configuration module for RAG Lab backend.
+Configuration module for RagXGen backend.
 
 Uses Pydantic Settings for environment variable management with validation
 and type coercion. All RAG pipeline parameters are configurable here.

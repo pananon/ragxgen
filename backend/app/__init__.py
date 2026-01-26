@@ -1,1 +1,1 @@
-# RAG Lab Backend Application
+# RagXGen Backend Application

@@ -1,7 +1,7 @@
 """
-RAG Lab Backend - FastAPI Application
+RagXGen Backend - FastAPI Application
 
-This is the main entry point for the RAG Lab backend API.
+This is the main entry point for the RagXGen backend API.
 It provides endpoints for document upload, processing, and RAG-powered Q&A.
 
 Architecture:
@@ -34,7 +34,7 @@ async def lifespan(app: FastAPI):
     Runs startup and shutdown logic.
     """
     # Startup
-    print("🚀 RAG Lab Backend starting...")
+    print("🚀 RagXGen Backend starting...")
     settings = get_settings()
     print(f"📊 Configuration loaded:")
     print(f"   - Chunk size: {settings.chunk_size}")
@@ -46,16 +46,16 @@ async def lifespan(app: FastAPI):
     yield
     
     # Shutdown
-    print("👋 RAG Lab Backend shutting down...")
+    print("👋 RagXGen Backend shutting down...")
 
 
 # Create FastAPI application
 app = FastAPI(
-    title="RAG Lab API",
+    title="RagXGen API",
     description="""
-    ## RAG Lab - Retrieval-Augmented Generation API
+    ## RagXGen - Retrieval-Augmented Generation API
     
-    This API powers the RAG Lab demo, providing:
+    This API powers the RagXGen demo, providing:
     
     ### Document Processing
     - Upload PDF and TXT documents
@@ -98,7 +98,7 @@ async def root():
     Root endpoint - API information.
     """
     return {
-        "name": "RAG Lab API",
+        "name": "RagXGen API",
         "version": "1.0.0",
         "description": "Retrieval-Augmented Generation Demo API",
         "docs_url": "/docs",

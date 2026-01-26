@@ -148,7 +148,7 @@ export default function AboutPage() {
                 className="max-w-3xl mb-16"
             >
                 <h1 className="page-title">
-                    About <span className="gradient-text">RAG Lab</span>
+                    About <span className="gradient-text">RagXGen</span>
                 </h1>
                 <p className="page-subtitle">
                     A deep dive into the design decisions, technical choices, and lessons
@@ -168,7 +168,7 @@ export default function AboutPage() {
                     <div className="grid md:grid-cols-2 gap-8">
                         <div>
                             <p className="text-foreground-muted mb-4">
-                                RAG Lab is a portfolio project designed to demonstrate deep understanding
+                                RagXGen is a portfolio project designed to demonstrate deep understanding
                                 of Retrieval-Augmented Generation. It&apos;s not just a demo—it&apos;s a
                                 complete, production-style implementation with clear architecture and
                                 honest discussion of trade-offs.

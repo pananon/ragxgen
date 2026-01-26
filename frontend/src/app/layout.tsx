@@ -4,7 +4,7 @@ import Navigation from "@/components/layout/Navigation";
 import Footer from "@/components/layout/Footer";
 
 export const metadata: Metadata = {
-    title: "RAG Lab — Retrieval-Augmented Generation Explained",
+    title: "RagXGen — Retrieval-Augmented Generation Explained",
     description:
         "A hands-on implementation of Retrieval-Augmented Generation. Ask questions, get answers grounded in your data.",
     keywords: [
@@ -17,9 +17,9 @@ export const metadata: Metadata = {
         "FAISS",
         "LangChain",
     ],
-    authors: [{ name: "RAG Lab" }],
+    authors: [{ name: "RagXGen" }],
     openGraph: {
-        title: "RAG Lab — Retrieval-Augmented Generation Explained",
+        title: "RagXGen — Retrieval-Augmented Generation Explained",
         description: "A hands-on implementation of Retrieval-Augmented Generation.",
         type: "website",
     },

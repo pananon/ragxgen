@@ -1,8 +1,8 @@
-# RAG Lab — Retrieval-Augmented Generation Explained by Building It
+# RagXGen — Retrieval-Augmented Generation Explained by Building It
 
 <div align="center">
 
-![RAG Lab](https://img.shields.io/badge/RAG-Lab-6366f1?style=for-the-badge)
+![RagXGen](https://img.shields.io/badge/RagXGen-6366f1?style=for-the-badge)
 ![Next.js](https://img.shields.io/badge/Next.js-14-black?style=for-the-badge&logo=next.js)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.109-009688?style=for-the-badge&logo=fastapi)
 ![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=for-the-badge&logo=python)
@@ -16,9 +16,9 @@
 
 ---
 
-## 🎯 What is RAG Lab?
+## 🎯 What is RagXGen?
 
-RAG Lab is a portfolio project that demonstrates deep understanding of Retrieval-Augmented Generation by:
+RagXGen is a portfolio project that demonstrates deep understanding of Retrieval-Augmented Generation by:
 
 1. **Explaining it** — Clear, engineer-friendly documentation of how RAG works
 2. **Visualizing it** — Interactive pipeline diagrams showing each step
