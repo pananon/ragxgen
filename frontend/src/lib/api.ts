@@ -29,7 +29,7 @@ export async function uploadDocument(file: File, sessionId?: string): Promise<Do
         formData.append('session_id', sessionId);
     }
 
-    const response = await fetch(`${API_URL}/upload`, {
+    const response = await fetch(`${API_URL}/documents/upload`, {
         method: 'POST',
         body: formData,
     });
@@ -49,7 +49,7 @@ export async function uploadDocument(file: File, sessionId?: string): Promise<Do
 }
 
 export async function queryRAG(sessionId: string, query: string, topK: number = 4): Promise<QueryResponse> {
-    const response = await fetch(`${API_URL}/query`, {
+    const response = await fetch(`${API_URL}/query/`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
