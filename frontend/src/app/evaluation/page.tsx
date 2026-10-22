@@ -1,20 +1,7 @@
 "use client";
 
-import { motion } from "framer-motion";
-import {
-    AlertTriangle,
-    CheckCircle,
-    XCircle,
-    ArrowRight,
-    Sliders,
-    Target,
-    Clock,
-    DollarSign,
-    Search,
-    FileText,
-} from "lucide-react";
-import Link from "next/link";
-import { cn } from "@/lib/utils";
+import Icon from "@/components/ui/Icon";
+import { Chapter, FinalCta, PageHead } from "@/components/page/Chapter";
 
 const tradeoffs = [
     {
@@ -48,12 +35,10 @@ const exampleComparisons = [
         scenario: "Knowledge freshness question",
         question: "What is the latest feature released in Q4 2024?",
         bad: {
-            type: "Without RAG",
             answer: "I don't have information about events after my training cutoff in early 2024. Please check the official documentation or announcements.",
             issues: ["No access to recent data", "Cannot help with current info"],
         },
         good: {
-            type: "With RAG",
             answer: "According to the Q4 2024 release notes, the latest feature is the AI-powered search enhancement, launched on December 15th. This includes semantic search and auto-complete functionality. (Source: release-notes-q4.pdf)",
             strengths: ["Access to current data", "Cites specific sources", "Provides accurate details"],
         },
@@ -62,12 +47,10 @@ const exampleComparisons = [
         scenario: "Company-specific information",
         question: "What is our company's refund policy?",
         bad: {
-            type: "Without RAG",
             answer: "Typically, refund policies vary by company. Most companies offer 30-day return windows. Please check your specific company's policy documentation for accurate information.",
             issues: ["Generic answer", "No specific details", "User must look elsewhere"],
         },
         good: {
-            type: "With RAG",
             answer: "According to the customer policy document, refunds are available within 14 days of purchase for digital products and 30 days for physical items. Refund requests must be submitted through the support portal. (Source: customer-policies.pdf, Chunk 12)",
             strengths: ["Company-specific answer", "Accurate policy details", "Actionable information"],
         },
@@ -77,7 +60,6 @@ const exampleComparisons = [
 const failureCases = [
     {
         title: "Insufficient Context",
-        icon: Search,
         description: "When retrieved chunks don't contain the answer",
         cause: "Document doesn't contain relevant information, or chunks are too small/large",
         solution: "Adjust chunk size, improve document coverage, or acknowledge uncertainty",
@@ -85,7 +67,6 @@ const failureCases = [
     },
     {
         title: "Wrong Document Retrieved",
-        icon: FileText,
         description: "Similar embeddings but irrelevant content",
         cause: "Embedding model captures wrong semantic aspects, or documents have similar vocabulary",
         solution: "Use reranking, hybrid search, or better embedding models",
@@ -93,7 +74,6 @@ const failureCases = [
     },
     {
         title: "Hallucination Despite Context",
-        icon: AlertTriangle,
         description: "LLM generates incorrect info even with good context",
         cause: "LLM may still rely on training data or misinterpret context",
         solution: "Lower temperature, use structured prompts, add verification steps",
@@ -101,7 +81,6 @@ const failureCases = [
     },
     {
         title: "Context Window Overflow",
-        icon: Sliders,
         description: "Too much retrieved context exceeds model limits",
         cause: "High top-K or large chunks with long queries",
         solution: "Limit context length, use summarization, or chunked generation",
@@ -111,245 +90,102 @@ const failureCases = [
 
 export default function EvaluationPage() {
     return (
-        <div className="section-container py-16">
-            {/* Header */}
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="max-w-3xl mb-16"
-            >
-                <h1 className="page-title">
-                    Evaluation & <span className="gradient-text">Trade-offs</span>
-                </h1>
-                <p className="page-subtitle">
-                    Understanding RAG parameters, failure modes, and tuning strategies
-                    is crucial for production deployment.
-                </p>
-            </motion.div>
+        <>
+            <PageHead
+                label="Guide 03 — Evaluation"
+                title={["Evaluation &", "trade-offs."]}
+                lede="RAG is a set of dials, not a switch. These are the parameters that matter, what good and bad answers look like, and the ways the pipeline fails."
+                meta={["3 parameters", "4 failure modes"]}
+            />
 
-            {/* Trade-offs Section */}
-            <motion.section
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                className="mb-20"
-            >
-                <h2 className="text-2xl font-bold mb-8 flex items-center gap-3">
-                    <Sliders className="w-6 h-6 text-primary" />
-                    Key Trade-offs
-                </h2>
-
-                <div className="space-y-6">
-                    {tradeoffs.map((tradeoff, index) => (
-                        <motion.div
-                            key={tradeoff.name}
-                            initial={{ opacity: 0, y: 20 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            transition={{ delay: index * 0.1 }}
-                            viewport={{ once: true }}
-                            className="glass-card p-6 rounded-2xl"
-                        >
-                            <div className="flex flex-col lg:flex-row lg:items-start gap-6">
-                                <div className="flex-1">
-                                    <h3 className="text-lg font-semibold mb-2">{tradeoff.name}</h3>
-                                    <p className="text-foreground-muted text-sm mb-4">
-                                        {tradeoff.description}
-                                    </p>
-
-                                    <div className="grid grid-cols-2 gap-4 mb-4">
-                                        <div className="p-3 bg-background rounded-lg border border-border">
-                                            <p className="text-xs text-foreground-muted mb-1">Low Value</p>
-                                            <p className="font-mono text-sm text-accent-cyan">{tradeoff.low.value}</p>
-                                            <p className="text-xs text-foreground-muted mt-1">{tradeoff.low.effect}</p>
-                                        </div>
-                                        <div className="p-3 bg-background rounded-lg border border-border">
-                                            <p className="text-xs text-foreground-muted mb-1">High Value</p>
-                                            <p className="font-mono text-sm text-accent-purple">{tradeoff.high.value}</p>
-                                            <p className="text-xs text-foreground-muted mt-1">{tradeoff.high.effect}</p>
-                                        </div>
-                                    </div>
-
-                                    <div className="p-3 bg-accent-green/10 rounded-lg border border-accent-green/20">
-                                        <p className="text-sm text-accent-green">
-                                            <strong>Recommendation:</strong> {tradeoff.recommendation}
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <div className="lg:w-48">
-                                    <p className="text-xs text-foreground-muted uppercase tracking-wider mb-2">
-                                        Impacts
-                                    </p>
-                                    <ul className="space-y-2">
-                                        {tradeoff.impact.map((item) => (
-                                            <li key={item} className="flex items-center gap-2 text-sm">
-                                                <Target className="w-4 h-4 text-primary" />
-                                                {item}
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </div>
+            <Chapter id="tradeoffs" label="01 — Key trade-offs" title="Three dials that shape every answer.">
+                <div>
+                    {tradeoffs.map((tradeoff) => (
+                        <article key={tradeoff.name} className="spec" data-reveal>
+                            <div className="spec-head">
+                                <h3>{tradeoff.name}</h3>
+                                <p className="muted">{tradeoff.description}</p>
                             </div>
-                        </motion.div>
-                    ))}
-                </div>
-            </motion.section>
-
-            {/* Good vs Bad Examples */}
-            <motion.section
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                className="mb-20"
-            >
-                <h2 className="text-2xl font-bold mb-8">
-                    RAG vs Non-RAG: Real Examples
-                </h2>
-
-                <div className="space-y-8">
-                    {exampleComparisons.map((example, index) => (
-                        <motion.div
-                            key={example.scenario}
-                            initial={{ opacity: 0, y: 20 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            transition={{ delay: index * 0.1 }}
-                            viewport={{ once: true }}
-                            className="glass-card p-6 rounded-2xl"
-                        >
-                            <div className="mb-4">
-                                <span className="text-xs text-primary bg-primary/10 px-2 py-1 rounded">
-                                    Scenario
-                                </span>
-                                <h3 className="text-lg font-semibold mt-2">{example.scenario}</h3>
-                                <p className="text-foreground-muted text-sm mt-1">
-                                    <strong>Question:</strong> &quot;{example.question}&quot;
-                                </p>
-                            </div>
-
-                            <div className="grid md:grid-cols-2 gap-4">
-                                {/* Bad Answer */}
-                                <div className="p-4 bg-red-500/5 rounded-xl border border-red-500/20">
-                                    <div className="flex items-center gap-2 mb-3">
-                                        <XCircle className="w-5 h-5 text-red-400" />
-                                        <span className="font-medium text-red-400">{example.bad.type}</span>
-                                    </div>
-                                    <p className="text-sm text-foreground-muted mb-3 italic">
-                                        &quot;{example.bad.answer}&quot;
-                                    </p>
-                                    <ul className="space-y-1">
-                                        {example.bad.issues.map((issue) => (
-                                            <li key={issue} className="flex items-center gap-2 text-xs text-red-400">
-                                                <XCircle className="w-3 h-3" />
-                                                {issue}
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </div>
-
-                                {/* Good Answer */}
-                                <div className="p-4 bg-accent-green/5 rounded-xl border border-accent-green/20">
-                                    <div className="flex items-center gap-2 mb-3">
-                                        <CheckCircle className="w-5 h-5 text-accent-green" />
-                                        <span className="font-medium text-accent-green">{example.good.type}</span>
-                                    </div>
-                                    <p className="text-sm text-foreground-muted mb-3 italic">
-                                        &quot;{example.good.answer}&quot;
-                                    </p>
-                                    <ul className="space-y-1">
-                                        {example.good.strengths.map((strength) => (
-                                            <li key={strength} className="flex items-center gap-2 text-xs text-accent-green">
-                                                <CheckCircle className="w-3 h-3" />
-                                                {strength}
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </div>
-                            </div>
-                        </motion.div>
-                    ))}
-                </div>
-            </motion.section>
-
-            {/* Failure Cases */}
-            <motion.section
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                className="mb-20"
-            >
-                <h2 className="text-2xl font-bold mb-8 flex items-center gap-3">
-                    <AlertTriangle className="w-6 h-6 text-yellow-400" />
-                    Common Failure Cases
-                </h2>
-
-                <div className="grid md:grid-cols-2 gap-6">
-                    {failureCases.map((failure, index) => (
-                        <motion.div
-                            key={failure.title}
-                            initial={{ opacity: 0, y: 20 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            transition={{ delay: index * 0.1 }}
-                            viewport={{ once: true }}
-                            className="glass-card p-6 rounded-2xl"
-                        >
-                            <div className="flex items-start gap-4">
-                                <div className="w-12 h-12 rounded-xl bg-yellow-500/10 flex items-center justify-center flex-shrink-0">
-                                    <failure.icon className="w-6 h-6 text-yellow-400" />
+                            <dl className="spec-range">
+                                <div>
+                                    <dt className="mono muted">Low value</dt>
+                                    <dd className="code">{tradeoff.low.value}</dd>
+                                    <dd><p>{tradeoff.low.effect}</p></dd>
                                 </div>
                                 <div>
-                                    <h3 className="font-semibold mb-2">{failure.title}</h3>
-                                    <p className="text-foreground-muted text-sm mb-3">
-                                        {failure.description}
-                                    </p>
-
-                                    <div className="space-y-2 text-sm">
-                                        <p>
-                                            <span className="text-red-400 font-medium">Cause:</span>{" "}
-                                            <span className="text-foreground-muted">{failure.cause}</span>
-                                        </p>
-                                        <p>
-                                            <span className="text-accent-green font-medium">Solution:</span>{" "}
-                                            <span className="text-foreground-muted">{failure.solution}</span>
-                                        </p>
-                                    </div>
-
-                                    <div className="mt-3 p-2 bg-background rounded border border-border">
-                                        <p className="text-xs text-foreground-muted font-mono">
-                                            {failure.example}
-                                        </p>
-                                    </div>
+                                    <dt className="mono muted">High value</dt>
+                                    <dd className="code">{tradeoff.high.value}</dd>
+                                    <dd><p>{tradeoff.high.effect}</p></dd>
                                 </div>
+                            </dl>
+                            <p className="spec-rec"><strong>Recommendation:</strong> {tradeoff.recommendation}</p>
+                            <div className="spec-impact">
+                                <p className="mono">Impacts</p>
+                                <ul className="tag-row">{tradeoff.impact.map((item) => <li key={item}>{item}</li>)}</ul>
                             </div>
-                        </motion.div>
+                        </article>
                     ))}
                 </div>
-            </motion.section>
+            </Chapter>
 
-            {/* CTA */}
-            <motion.section
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                className="text-center"
-            >
-                <div className="glass-card p-12 rounded-3xl glow">
-                    <h2 className="text-2xl font-bold mb-4">
-                        Ready to see how this was built?
-                    </h2>
-                    <p className="text-foreground-muted mb-8">
-                        Explore the design decisions and technical choices behind RagXGen.
-                    </p>
-                    <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                        <Link href="/about" className="btn-primary inline-flex items-center gap-2">
-                            Read Case Study
-                            <ArrowRight className="w-4 h-4" />
-                        </Link>
-                        <Link href="/demo" className="btn-secondary inline-flex items-center gap-2">
-                            Try the Demo
-                        </Link>
-                    </div>
+            <Chapter id="examples" label="02 — RAG vs non-RAG" title="The same question, two answers." note="Illustrative examples of how retrieval changes an answer.">
+                <div>
+                    {exampleComparisons.map((example) => (
+                        <article key={example.scenario} className="compare" data-reveal>
+                            <div className="compare-head">
+                                <p className="mono muted">Scenario</p>
+                                <h3>{example.scenario}</h3>
+                                <q>{example.question}</q>
+                            </div>
+                            <div className="compare-grid">
+                                <div className="answer-card answer-bad">
+                                    <p className="mono">Without RAG</p>
+                                    <blockquote>{example.bad.answer}</blockquote>
+                                    <ul>
+                                        {example.bad.issues.map((issue) => (
+                                            <li key={issue}><Icon name="close-circle-linear" size={16} />{issue}</li>
+                                        ))}
+                                    </ul>
+                                </div>
+                                <div className="answer-card answer-good">
+                                    <p className="mono">With RAG</p>
+                                    <blockquote>{example.good.answer}</blockquote>
+                                    <ul>
+                                        {example.good.strengths.map((strength) => (
+                                            <li key={strength}><Icon name="check-circle-linear" size={16} />{strength}</li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            </div>
+                        </article>
+                    ))}
                 </div>
-            </motion.section>
-        </div>
+            </Chapter>
+
+            <Chapter id="failures" dark label="03 — Failure modes" title="Where RAG breaks, and what to do about it.">
+                <div className="failures" data-reveal-stagger>
+                    {failureCases.map((failure) => (
+                        <article key={failure.title} className="failure">
+                            <h3>{failure.title}</h3>
+                            <p>{failure.description}</p>
+                            <dl>
+                                <div><dt>Cause</dt><dd>{failure.cause}</dd></div>
+                                <div><dt>Solution</dt><dd>{failure.solution}</dd></div>
+                            </dl>
+                            <p className="code">{failure.example}</p>
+                        </article>
+                    ))}
+                </div>
+            </Chapter>
+
+            <FinalCta
+                label="Next"
+                title="See how it was built."
+                text="The design decisions, the stack, and what this project would need before it ran in production."
+                href="/about"
+                action="Read the case study"
+                secondary={{ href: "/demo", label: "Try the demo" }}
+            />
+        </>
     );
 }

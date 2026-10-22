@@ -1,20 +1,13 @@
 "use client";
 
-import { motion } from "framer-motion";
-import {
-    Code2,
-    Database,
-    Globe,
-    Zap,
-    ArrowRight,
-    CheckCircle,
-    Lightbulb,
-    Wrench,
-    AlertTriangle,
-    Github,
-    ExternalLink,
-} from "lucide-react";
-import Link from "next/link";
+import { Chapter, FinalCta, PageHead } from "@/components/page/Chapter";
+
+const highlights = [
+    "Full-stack implementation (Next.js + FastAPI)",
+    "Real RAG pipeline with FAISS + LangChain",
+    "Interactive demo with live document processing",
+    "Production-style code patterns",
+];
 
 const techStack = [
     {
@@ -22,8 +15,8 @@ const techStack = [
         items: [
             { name: "Next.js 14", description: "App Router for modern React patterns" },
             { name: "TypeScript", description: "Type safety and better DX" },
-            { name: "Tailwind CSS", description: "Utility-first styling" },
-            { name: "Framer Motion", description: "Smooth animations" },
+            { name: "Tailwind CSS", description: "Reset and utility layer" },
+            { name: "GSAP + Lenis", description: "Scroll choreography and smooth scrolling" },
         ],
     },
     {
@@ -36,9 +29,9 @@ const techStack = [
         ],
     },
     {
-        category: "AI/ML",
+        category: "AI / ML",
         items: [
-            { name: "OpenAI GPT-4o-mini", description: "Response generation" },
+            { name: "GPT-4o-mini", description: "Response generation (any OpenAI-compatible API)" },
             { name: "text-embedding-3-small", description: "Document embeddings" },
             { name: "RecursiveCharacterTextSplitter", description: "Smart chunking" },
         ],
@@ -72,292 +65,121 @@ const designDecisions = [
     },
 ];
 
-const productionImprovements = [
+const lessons = [
+    { title: "Start Simple", description: "Basic RAG works surprisingly well. Add complexity only when needed." },
+    { title: "Chunk Size Matters", description: "Too small = no context. Too large = noise. 1000 chars is a good starting point." },
+    { title: "Prompt Engineering is Key", description: "The system prompt significantly affects response quality and grounding." },
+    { title: "Observability is Essential", description: "Log retrieved chunks and scores to debug and improve the pipeline." },
+];
+
+const improvements = [
     {
         category: "Retrieval Quality",
-        items: [
-            "Add reranking with a cross-encoder model",
-            "Implement hybrid search (semantic + keyword)",
-            "Use HyDE (Hypothetical Document Embeddings)",
-            "Add query expansion/reformulation",
-        ],
+        items: ["Add reranking with a cross-encoder model", "Implement hybrid search (semantic + keyword)", "Use HyDE (Hypothetical Document Embeddings)", "Add query expansion/reformulation"],
     },
     {
         category: "Scalability",
-        items: [
-            "Use managed vector DB (Pinecone, Weaviate, Qdrant)",
-            "Add Redis caching for frequent queries",
-            "Implement connection pooling",
-            "Deploy with auto-scaling",
-        ],
+        items: ["Use managed vector DB (Pinecone, Weaviate, Qdrant)", "Add Redis caching for frequent queries", "Implement connection pooling", "Deploy with auto-scaling"],
     },
     {
         category: "Reliability",
-        items: [
-            "Add comprehensive error handling",
-            "Implement retry logic with exponential backoff",
-            "Add health checks and monitoring",
-            "Set up structured logging",
-        ],
+        items: ["Add comprehensive error handling", "Implement retry logic with exponential backoff", "Add health checks and monitoring", "Set up structured logging"],
     },
     {
         category: "User Experience",
-        items: [
-            "Streaming responses for faster perceived latency",
-            "Add conversation history and memory",
-            "Implement feedback collection",
-            "Support more file formats (DOCX, HTML, etc.)",
-        ],
-    },
-];
-
-const lessonsLearned = [
-    {
-        icon: CheckCircle,
-        title: "Start Simple",
-        description: "Basic RAG works surprisingly well. Add complexity only when needed.",
-        color: "text-accent-green",
-    },
-    {
-        icon: AlertTriangle,
-        title: "Chunk Size Matters",
-        description: "Too small = no context. Too large = noise. 1000 chars is a good starting point.",
-        color: "text-yellow-400",
-    },
-    {
-        icon: Lightbulb,
-        title: "Prompt Engineering is Key",
-        description: "The system prompt significantly affects response quality and grounding.",
-        color: "text-accent-cyan",
-    },
-    {
-        icon: Wrench,
-        title: "Observability is Essential",
-        description: "Log retrieved chunks and scores to debug and improve the pipeline.",
-        color: "text-accent-purple",
+        items: ["Streaming responses for faster perceived latency", "Add conversation history and memory", "Implement feedback collection", "Support more file formats (DOCX, HTML, etc.)"],
     },
 ];
 
 export default function AboutPage() {
     return (
-        <div className="section-container py-16">
-            {/* Header */}
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="max-w-3xl mb-16"
-            >
-                <h1 className="page-title">
-                    About <span className="gradient-text">RagXGen</span>
-                </h1>
-                <p className="page-subtitle">
-                    A deep dive into the design decisions, technical choices, and lessons
-                    learned from building this RAG implementation.
-                </p>
-            </motion.div>
+        <>
+            <PageHead
+                label="Guide 04 — Case study"
+                title={["About", "the build."]}
+                lede="The design decisions, technical choices and lessons behind this RAG implementation, plus an honest list of what production would still need."
+                meta={["Next.js + FastAPI", "Open source"]}
+            />
 
-            {/* Project Overview */}
-            <motion.section
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                className="mb-20"
-            >
-                <div className="glass-card p-8 rounded-3xl">
-                    <h2 className="text-2xl font-bold mb-6">Project Overview</h2>
-                    <div className="grid md:grid-cols-2 gap-8">
-                        <div>
-                            <p className="text-foreground-muted mb-4">
-                                RagXGen is a portfolio project designed to demonstrate deep understanding
-                                of Retrieval-Augmented Generation. It&apos;s not just a demo—it&apos;s a
-                                complete, production-style implementation with clear architecture and
-                                honest discussion of trade-offs.
-                            </p>
-                            <p className="text-foreground-muted">
-                                The goal is to show potential employers, collaborators, and AI leads
-                                that I understand RAG beyond tutorials—I can build, evaluate, and
-                                improve real systems.
-                            </p>
-                        </div>
-                        <div className="space-y-4">
-                            <div className="flex items-center gap-3">
-                                <Code2 className="w-5 h-5 text-primary" />
-                                <span>Full-stack implementation (Next.js + FastAPI)</span>
-                            </div>
-                            <div className="flex items-center gap-3">
-                                <Database className="w-5 h-5 text-primary" />
-                                <span>Real RAG pipeline with FAISS + LangChain</span>
-                            </div>
-                            <div className="flex items-center gap-3">
-                                <Globe className="w-5 h-5 text-primary" />
-                                <span>Interactive demo with live document processing</span>
-                            </div>
-                            <div className="flex items-center gap-3">
-                                <Zap className="w-5 h-5 text-primary" />
-                                <span>Production-ready code patterns</span>
-                            </div>
-                        </div>
+            <Chapter id="overview" label="01 — Overview" title="Beyond the tutorial.">
+                <div className="overview">
+                    <div className="overview-copy" data-reveal>
+                        <p>
+                            RagXGen is a portfolio project built to demonstrate a working understanding of Retrieval-Augmented
+                            Generation: a complete implementation with clear architecture and an honest discussion of trade-offs.
+                        </p>
+                        <p>
+                            The goal is to show employers, collaborators and AI leads the ability to build, evaluate and improve
+                            real systems, not just follow a guide.
+                        </p>
                     </div>
+                    <ul className="overview-points" data-reveal-stagger>
+                        {highlights.map((item) => <li key={item}>{item}</li>)}
+                    </ul>
                 </div>
-            </motion.section>
+            </Chapter>
 
-            {/* Tech Stack */}
-            <motion.section
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                className="mb-20"
-            >
-                <h2 className="text-2xl font-bold mb-8">Tech Stack</h2>
-                <div className="grid md:grid-cols-3 gap-6">
-                    {techStack.map((category) => (
-                        <div key={category.category} className="glass-card p-6 rounded-2xl">
-                            <h3 className="font-semibold text-lg mb-4 text-primary">
-                                {category.category}
-                            </h3>
-                            <ul className="space-y-3">
-                                {category.items.map((item) => (
-                                    <li key={item.name}>
-                                        <p className="font-medium">{item.name}</p>
-                                        <p className="text-sm text-foreground-muted">{item.description}</p>
-                                    </li>
+            <Chapter id="stack" label="02 — Tech stack" title="What it runs on.">
+                <div className="stack-cols" data-reveal-stagger>
+                    {techStack.map((column) => (
+                        <div key={column.category} className="stack-col">
+                            <h3>{column.category}</h3>
+                            <ul>
+                                {column.items.map((item) => (
+                                    <li key={item.name}><b>{item.name}</b><span>{item.description}</span></li>
                                 ))}
                             </ul>
                         </div>
                     ))}
                 </div>
-            </motion.section>
+            </Chapter>
 
-            {/* Design Decisions */}
-            <motion.section
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                className="mb-20"
-            >
-                <h2 className="text-2xl font-bold mb-8">Design Decisions</h2>
-                <div className="space-y-4">
-                    {designDecisions.map((item, index) => (
-                        <motion.div
-                            key={item.decision}
-                            initial={{ opacity: 0, x: -20 }}
-                            whileInView={{ opacity: 1, x: 0 }}
-                            transition={{ delay: index * 0.1 }}
-                            viewport={{ once: true }}
-                            className="glass-card p-6 rounded-2xl"
-                        >
-                            <h3 className="font-semibold text-lg mb-3">{item.decision}</h3>
-                            <div className="grid md:grid-cols-3 gap-4 text-sm">
-                                <div>
-                                    <p className="text-foreground-muted mb-1">Why</p>
-                                    <p>{item.why}</p>
-                                </div>
-                                <div>
-                                    <p className="text-foreground-muted mb-1">Trade-off</p>
-                                    <p>{item.tradeoff}</p>
-                                </div>
-                                <div>
-                                    <p className="text-foreground-muted mb-1">Alternative</p>
-                                    <p className="text-accent-cyan">{item.alternative}</p>
-                                </div>
-                            </div>
-                        </motion.div>
+            <Chapter id="decisions" label="03 — Design decisions" title="Each choice, and its cost.">
+                <div>
+                    {designDecisions.map((item) => (
+                        <article key={item.decision} className="decision" data-reveal>
+                            <h3>{item.decision}</h3>
+                            <dl>
+                                <div><dt>Why</dt><dd>{item.why}</dd></div>
+                                <div><dt>Trade-off</dt><dd>{item.tradeoff}</dd></div>
+                                <div><dt>Alternative</dt><dd>{item.alternative}</dd></div>
+                            </dl>
+                        </article>
                     ))}
                 </div>
-            </motion.section>
+            </Chapter>
 
-            {/* Lessons Learned */}
-            <motion.section
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                className="mb-20"
-            >
-                <h2 className="text-2xl font-bold mb-8">Lessons Learned</h2>
-                <div className="grid md:grid-cols-2 gap-6">
-                    {lessonsLearned.map((lesson, index) => (
-                        <motion.div
-                            key={lesson.title}
-                            initial={{ opacity: 0, y: 20 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            transition={{ delay: index * 0.1 }}
-                            viewport={{ once: true }}
-                            className="glass-card p-6 rounded-2xl"
-                        >
-                            <div className="flex items-start gap-4">
-                                <div className={`w-10 h-10 rounded-lg bg-background flex items-center justify-center ${lesson.color}`}>
-                                    <lesson.icon className="w-5 h-5" />
-                                </div>
-                                <div>
-                                    <h3 className="font-semibold mb-2">{lesson.title}</h3>
-                                    <p className="text-foreground-muted text-sm">{lesson.description}</p>
-                                </div>
-                            </div>
-                        </motion.div>
+            <Chapter id="lessons" dark label="04 — Lessons learned" title="What building it taught.">
+                <div className="lessons" data-reveal-stagger>
+                    {lessons.map((lesson, index) => (
+                        <article key={lesson.title} className="lesson">
+                            <p className="mono">Lesson {String(index + 1).padStart(2, "0")}</p>
+                            <h3>{lesson.title}</h3>
+                            <p>{lesson.description}</p>
+                        </article>
                     ))}
                 </div>
-            </motion.section>
+            </Chapter>
 
-            {/* Production Improvements */}
-            <motion.section
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                className="mb-20"
-            >
-                <h2 className="text-2xl font-bold mb-8">Production Improvements</h2>
-                <p className="text-foreground-muted mb-6">
-                    If deploying this to production, here&apos;s what I&apos;d add:
-                </p>
-                <div className="grid md:grid-cols-2 gap-6">
-                    {productionImprovements.map((category) => (
-                        <div key={category.category} className="glass-card p-6 rounded-2xl">
-                            <h3 className="font-semibold text-lg mb-4">{category.category}</h3>
-                            <ul className="space-y-2">
-                                {category.items.map((item) => (
-                                    <li key={item} className="flex items-start gap-2 text-sm text-foreground-muted">
-                                        <ArrowRight className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
-                                        {item}
-                                    </li>
-                                ))}
-                            </ul>
+            <Chapter id="production" label="05 — Production" title="What production would add." note="If this were deployed for real users, these come next.">
+                <div className="improvements" data-reveal-stagger>
+                    {improvements.map((group) => (
+                        <div key={group.category} className="list-block">
+                            <h3>{group.category}</h3>
+                            <ul>{group.items.map((item) => <li key={item}>{item}</li>)}</ul>
                         </div>
                     ))}
                 </div>
-            </motion.section>
+            </Chapter>
 
-            {/* CTA */}
-            <motion.section
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                className="text-center"
-            >
-                <div className="glass-card p-12 rounded-3xl glow">
-                    <h2 className="text-2xl font-bold mb-4">
-                        Let&apos;s Connect
-                    </h2>
-                    <p className="text-foreground-muted mb-8 max-w-xl mx-auto">
-                        Interested in discussing RAG, AI/ML engineering, or potential opportunities?
-                        I&apos;d love to hear from you.
-                    </p>
-                    <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                        <a
-                            href="https://github.com"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="btn-primary inline-flex items-center gap-2"
-                        >
-                            <Github className="w-5 h-5" />
-                            View on GitHub
-                        </a>
-                        <Link href="/demo" className="btn-secondary inline-flex items-center gap-2">
-                            Try the Demo
-                            <ExternalLink className="w-4 h-4" />
-                        </Link>
-                    </div>
-                </div>
-            </motion.section>
-        </div>
+            <FinalCta
+                label="Let's connect"
+                title="Talk RAG, or try it."
+                text="Interested in RAG, AI engineering, or working together? The source is on GitHub, and the demo is one click away."
+                href="/demo"
+                action="Try the demo"
+                secondary={{ href: "https://github.com/pananon/ragxgen", label: "View on GitHub" }}
+            />
+        </>
     );
 }

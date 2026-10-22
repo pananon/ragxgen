@@ -1,135 +1,109 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, Sparkles } from "lucide-react";
-import { cn } from "@/lib/utils";
+import Icon from "@/components/ui/Icon";
+import { getLenis } from "@/lib/motion";
 
 const navLinks = [
-    { href: "/", label: "Home" },
     { href: "/what-is-rag", label: "What is RAG?" },
     { href: "/architecture", label: "Architecture" },
-    { href: "/demo", label: "Live Demo" },
     { href: "/evaluation", label: "Evaluation" },
     { href: "/about", label: "About" },
 ];
 
+export function Wordmark() {
+    return <>Rag<span>XGen</span></>;
+}
+
 export default function Navigation() {
     const pathname = usePathname();
-    const [isScrolled, setIsScrolled] = useState(false);
-    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [scrolled, setScrolled] = useState(false);
+    const [open, setOpen] = useState(false);
+    const toggleRef = useRef<HTMLButtonElement>(null);
+    const menuRef = useRef<HTMLDivElement>(null);
+    const wasOpen = useRef(false);
 
     useEffect(() => {
-        const handleScroll = () => {
-            setIsScrolled(window.scrollY > 20);
-        };
-
-        window.addEventListener("scroll", handleScroll);
-        return () => window.removeEventListener("scroll", handleScroll);
+        const onScroll = () => setScrolled(window.scrollY > 16);
+        onScroll();
+        window.addEventListener("scroll", onScroll, { passive: true });
+        return () => window.removeEventListener("scroll", onScroll);
     }, []);
 
-    return (
-        <header
-            className={cn(
-                "fixed top-0 left-0 right-0 z-50 transition-all duration-300",
-                isScrolled
-                    ? "bg-background/80 backdrop-blur-xl border-b border-border"
-                    : "bg-transparent"
-            )}
-        >
-            <nav className="section-container">
-                <div className="flex items-center justify-between h-20">
-                    {/* Logo */}
-                    <Link href="/" className="flex items-center gap-2 group">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent-purple flex items-center justify-center">
-                            <Sparkles className="w-5 h-5 text-white" />
-                        </div>
-                        <span className="font-bold text-xl">
-                            Rag<span className="text-primary">XGen</span>
-                        </span>
-                    </Link>
+    useEffect(() => setOpen(false), [pathname]);
 
-                    {/* Desktop Navigation */}
-                    <div className="hidden md:flex items-center gap-1">
-                        {navLinks.map((link) => (
-                            <Link
-                                key={link.href}
-                                href={link.href}
-                                className={cn(
-                                    "px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200",
-                                    pathname === link.href
-                                        ? "text-primary bg-primary/10"
-                                        : "text-foreground-muted hover:text-foreground hover:bg-background-tertiary"
-                                )}
-                            >
-                                {link.label}
+    useEffect(() => {
+        if (!open) {
+            if (wasOpen.current) toggleRef.current?.focus();
+            wasOpen.current = false;
+            return undefined;
+        }
+        wasOpen.current = true;
+        const lenis = getLenis();
+        lenis?.stop();
+        document.body.style.overflow = "hidden";
+        menuRef.current?.querySelector<HTMLElement>("a")?.focus();
+        const onKey = (event: KeyboardEvent) => {
+            if (event.key === "Escape") setOpen(false);
+            if (event.key !== "Tab" || !menuRef.current) return;
+            const focusable = Array.from(menuRef.current.querySelectorAll<HTMLElement>("a, button"));
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+            if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+            else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+        };
+        window.addEventListener("keydown", onKey);
+        return () => {
+            window.removeEventListener("keydown", onKey);
+            document.body.style.overflow = "";
+            lenis?.start();
+        };
+    }, [open]);
+
+    const current = (href: string) => (pathname === href ? "page" : undefined);
+
+    return (
+        <header className="site-header" data-scrolled={scrolled || undefined}>
+            <div className="wrap site-header-inner">
+                <Link href="/" className="wordmark" aria-label="RagXGen home"><Wordmark /></Link>
+                <nav className="site-nav" aria-label="Primary">
+                    {navLinks.map((link) => (
+                        <Link key={link.href} href={link.href} aria-current={current(link.href)}>{link.label}</Link>
+                    ))}
+                </nav>
+                <Link href="/demo" className="btn btn-ink" aria-current={current("/demo")}>
+                    Try the demo <Icon name="arrow-right-linear" size={16} />
+                </Link>
+                <button
+                    ref={toggleRef}
+                    type="button"
+                    className="menu-toggle"
+                    aria-expanded={open}
+                    aria-controls="site-menu"
+                    onClick={() => setOpen(true)}
+                >
+                    <span className="mono">Menu</span>
+                    <Icon name="hamburger-menu-linear" size={22} />
+                </button>
+            </div>
+            {open && (
+                <div id="site-menu" ref={menuRef} className="site-menu" role="dialog" aria-modal="true" aria-label="Site menu">
+                    <nav aria-label="Mobile">
+                        {[{ href: "/", label: "Home" }, ...navLinks, { href: "/demo", label: "Live demo" }].map((link, index) => (
+                            <Link key={link.href} href={link.href} aria-current={current(link.href)} onClick={() => setOpen(false)}>
+                                <span className="mono">{String(index + 1).padStart(2, "0")}</span>
+                                <span>{link.label}</span>
                             </Link>
                         ))}
-                    </div>
-
-                    {/* Demo CTA Button */}
-                    <div className="hidden md:block">
-                        <Link
-                            href="/demo"
-                            className="btn-primary inline-flex items-center gap-2"
-                        >
-                            <Sparkles className="w-4 h-4" />
-                            Try Demo
-                        </Link>
-                    </div>
-
-                    {/* Mobile Menu Button */}
-                    <button
-                        className="md:hidden p-2 rounded-lg hover:bg-background-tertiary"
-                        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                    >
-                        {isMobileMenuOpen ? (
-                            <X className="w-6 h-6" />
-                        ) : (
-                            <Menu className="w-6 h-6" />
-                        )}
+                    </nav>
+                    <button type="button" className="menu-toggle site-menu-close" onClick={() => setOpen(false)}>
+                        <span className="mono">Close</span>
+                        <Icon name="close-circle-linear" size={22} />
                     </button>
                 </div>
-            </nav>
-
-            {/* Mobile Menu */}
-            <AnimatePresence>
-                {isMobileMenuOpen && (
-                    <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: "auto" }}
-                        exit={{ opacity: 0, height: 0 }}
-                        className="md:hidden bg-background/95 backdrop-blur-xl border-b border-border"
-                    >
-                        <div className="section-container py-4 space-y-2">
-                            {navLinks.map((link) => (
-                                <Link
-                                    key={link.href}
-                                    href={link.href}
-                                    onClick={() => setIsMobileMenuOpen(false)}
-                                    className={cn(
-                                        "block px-4 py-3 rounded-lg text-sm font-medium transition-all",
-                                        pathname === link.href
-                                            ? "text-primary bg-primary/10"
-                                            : "text-foreground-muted hover:text-foreground hover:bg-background-tertiary"
-                                    )}
-                                >
-                                    {link.label}
-                                </Link>
-                            ))}
-                            <Link
-                                href="/demo"
-                                onClick={() => setIsMobileMenuOpen(false)}
-                                className="btn-primary w-full text-center mt-4 block"
-                            >
-                                Try Demo
-                            </Link>
-                        </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+            )}
         </header>
     );
 }
