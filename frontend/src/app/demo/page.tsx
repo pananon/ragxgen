@@ -1,20 +1,7 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import {
-    Upload,
-    Send,
-    FileText,
-    Loader2,
-    AlertCircle,
-    CheckCircle,
-    ChevronDown,
-    ChevronUp,
-    Trash2,
-    Settings,
-    X,
-} from "lucide-react";
+import { useEffect, useRef, useState, type DragEvent } from "react";
+import Icon from "@/components/ui/Icon";
 import {
     uploadDocument,
     queryRAG,
@@ -22,11 +9,11 @@ import {
     type DocumentUploadResponse,
     type RetrievedContext,
 } from "@/lib/api";
-import { cn, formatScore, getScoreColor } from "@/lib/utils";
+import { formatScore, getScoreLevel } from "@/lib/utils";
 
 interface Message {
     id: string;
-    role: "user" | "assistant";
+    role: "user" | "assistant" | "system";
     content: string;
     contexts?: RetrievedContext[];
     sources?: string[];
@@ -37,6 +24,8 @@ interface UploadedDoc {
     filename: string;
     chunks: number;
 }
+
+const ACCEPT = ".pdf,.txt";
 
 export default function DemoPage() {
     // State
@@ -50,21 +39,19 @@ export default function DemoPage() {
     const [expandedContexts, setExpandedContexts] = useState<Set<string>>(new Set());
     const [showSettings, setShowSettings] = useState(false);
     const [topK, setTopK] = useState(4);
+    const [dragging, setDragging] = useState(false);
 
     // Refs
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const messagesEndRef = useRef<HTMLDivElement>(null);
+    const logRef = useRef<HTMLDivElement>(null);
 
-    // Auto-scroll to bottom
+    // Keep the newest message in view by scrolling the log itself, never the page.
     useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, [messages]);
+        const log = logRef.current;
+        if (log) log.scrollTo({ top: log.scrollHeight, behavior: "smooth" });
+    }, [messages, isQuerying]);
 
-    // Handle file upload
-    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-
+    const uploadFile = async (file: File) => {
         setIsUploading(true);
         setError(null);
 
@@ -72,28 +59,38 @@ export default function DemoPage() {
             const response: DocumentUploadResponse = await uploadDocument(file, sessionId || undefined);
 
             setSessionId(response.session_id);
-            setUploadedDocs((prev) => [
-                ...prev,
-                { filename: response.filename, chunks: response.num_chunks },
-            ]);
-
-            // Add system message
+            setUploadedDocs((prev) => [...prev, { filename: response.filename, chunks: response.num_chunks }]);
             setMessages((prev) => [
                 ...prev,
                 {
                     id: crypto.randomUUID(),
-                    role: "assistant",
-                    content: `✓ Successfully uploaded **${response.filename}**\n\nProcessed into ${response.num_chunks} chunks (${response.chunk_size} chars each, ${response.chunk_overlap} overlap). You can now ask questions about this document.`,
+                    role: "system",
+                    content: `Indexed ${response.filename}\nProcessed into ${response.num_chunks} chunks (${response.chunk_size} chars each, ${response.chunk_overlap} overlap). You can now ask questions about this document.`,
                 },
             ]);
         } catch (err) {
             setError(err instanceof Error ? err.message : "Failed to upload document");
         } finally {
             setIsUploading(false);
-            if (fileInputRef.current) {
-                fileInputRef.current.value = "";
-            }
+            if (fileInputRef.current) fileInputRef.current.value = "";
         }
+    };
+
+    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) uploadFile(file);
+    };
+
+    const onDrop = (e: DragEvent<HTMLButtonElement>) => {
+        e.preventDefault();
+        setDragging(false);
+        const file = e.dataTransfer.files?.[0];
+        if (!file || isUploading) return;
+        if (!/\.(pdf|txt)$/i.test(file.name)) {
+            setError("Only PDF and TXT files are supported.");
+            return;
+        }
+        uploadFile(file);
     };
 
     // Handle query submission
@@ -101,11 +98,7 @@ export default function DemoPage() {
         e.preventDefault();
         if (!inputValue.trim() || !sessionId || isQuerying) return;
 
-        const userMessage: Message = {
-            id: crypto.randomUUID(),
-            role: "user",
-            content: inputValue.trim(),
-        };
+        const userMessage: Message = { id: crypto.randomUUID(), role: "user", content: inputValue.trim() };
 
         setMessages((prev) => [...prev, userMessage]);
         setInputValue("");
@@ -114,17 +107,17 @@ export default function DemoPage() {
 
         try {
             const response: QueryResponse = await queryRAG(sessionId, userMessage.content, topK);
-
-            const assistantMessage: Message = {
-                id: crypto.randomUUID(),
-                role: "assistant",
-                content: response.answer,
-                contexts: response.retrieved_contexts,
-                sources: response.sources,
-                tokensUsed: response.tokens_used,
-            };
-
-            setMessages((prev) => [...prev, assistantMessage]);
+            setMessages((prev) => [
+                ...prev,
+                {
+                    id: crypto.randomUUID(),
+                    role: "assistant",
+                    content: response.answer,
+                    contexts: response.retrieved_contexts,
+                    sources: response.sources,
+                    tokensUsed: response.tokens_used,
+                },
+            ]);
         } catch (err) {
             setError(err instanceof Error ? err.message : "Failed to get response");
         } finally {
@@ -132,20 +125,15 @@ export default function DemoPage() {
         }
     };
 
-    // Toggle context expansion
     const toggleContext = (messageId: string) => {
         setExpandedContexts((prev) => {
             const next = new Set(prev);
-            if (next.has(messageId)) {
-                next.delete(messageId);
-            } else {
-                next.add(messageId);
-            }
+            if (next.has(messageId)) next.delete(messageId);
+            else next.add(messageId);
             return next;
         });
     };
 
-    // Clear session
     const clearSession = () => {
         setSessionId(null);
         setUploadedDocs([]);
@@ -153,351 +141,209 @@ export default function DemoPage() {
         setError(null);
     };
 
+    const ready = uploadedDocs.length > 0;
+    const pickFile = () => fileInputRef.current?.click();
+
     return (
-        <div className="section-container py-8">
-            <div className="max-w-5xl mx-auto">
-                {/* Header */}
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="mb-8"
-                >
-                    <h1 className="text-3xl font-bold mb-2">
-                        Live <span className="gradient-text">RagXGen Demo</span>
-                    </h1>
-                    <p className="text-foreground-muted">
-                        Upload documents and ask questions. See retrieval and generation in action.
-                    </p>
-                </motion.div>
+        <div className="demo wrap">
+            <header className="demo-head">
+                <div>
+                    <p className="chapter-label mono">Live demo</p>
+                    <h1>Ask your document.</h1>
+                </div>
+                <p>Upload a PDF or TXT file, then ask questions. Every answer shows the chunks it was retrieved from, with similarity scores and sources.</p>
+            </header>
 
-                <div className="grid lg:grid-cols-[1fr,320px] gap-6">
-                    {/* Main Chat Area */}
-                    <div className="glass-card rounded-3xl overflow-hidden flex flex-col h-[700px]">
-                        {/* Chat Header */}
-                        <div className="p-4 border-b border-border flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                <div className="w-3 h-3 rounded-full bg-accent-green animate-pulse" />
-                                <span className="font-medium">RAG Assistant</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <button
-                                    onClick={() => setShowSettings(!showSettings)}
-                                    className="p-2 rounded-lg hover:bg-background-tertiary text-foreground-muted hover:text-foreground"
-                                >
-                                    <Settings className="w-5 h-5" />
+            <input ref={fileInputRef} type="file" accept={ACCEPT} onChange={handleFileUpload} className="sr-only" tabIndex={-1} aria-hidden="true" />
+
+            <div className="demo-grid">
+                <section className="chat" aria-label="RAG assistant">
+                    <div className="chat-bar">
+                        <p className="chat-status mono">
+                            <i data-ready={ready || undefined} aria-hidden="true" />
+                            {ready ? `Ready · ${uploadedDocs.length} document${uploadedDocs.length > 1 ? "s" : ""} indexed` : "Waiting for a document"}
+                        </p>
+                        <div>
+                            <button
+                                type="button"
+                                className="icon-btn"
+                                onClick={() => setShowSettings(!showSettings)}
+                                aria-expanded={showSettings}
+                                aria-controls="chat-settings"
+                                aria-label="Retrieval settings"
+                            >
+                                <Icon name="tuning-2-linear" size={20} />
+                            </button>
+                            {ready && (
+                                <button type="button" className="icon-btn" onClick={clearSession} aria-label="Clear session and documents">
+                                    <Icon name="trash-bin-trash-linear" size={20} />
                                 </button>
-                                {uploadedDocs.length > 0 && (
-                                    <button
-                                        onClick={clearSession}
-                                        className="p-2 rounded-lg hover:bg-background-tertiary text-foreground-muted hover:text-red-400"
-                                    >
-                                        <Trash2 className="w-5 h-5" />
-                                    </button>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Settings Panel */}
-                        <AnimatePresence>
-                            {showSettings && (
-                                <motion.div
-                                    initial={{ height: 0, opacity: 0 }}
-                                    animate={{ height: "auto", opacity: 1 }}
-                                    exit={{ height: 0, opacity: 0 }}
-                                    className="border-b border-border overflow-hidden"
-                                >
-                                    <div className="p-4 bg-background-tertiary/50">
-                                        <div className="flex items-center justify-between">
-                                            <div>
-                                                <label className="text-sm font-medium">Top-K Retrieval</label>
-                                                <p className="text-xs text-foreground-muted">Number of chunks to retrieve</p>
-                                            </div>
-                                            <select
-                                                value={topK}
-                                                onChange={(e) => setTopK(Number(e.target.value))}
-                                                className="bg-background border border-border rounded-lg px-3 py-2 text-sm"
-                                            >
-                                                {[2, 3, 4, 5, 6, 8, 10].map((k) => (
-                                                    <option key={k} value={k}>{k} chunks</option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                    </div>
-                                </motion.div>
                             )}
-                        </AnimatePresence>
-
-                        {/* Messages */}
-                        <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                            {messages.length === 0 && uploadedDocs.length === 0 && (
-                                <div className="h-full flex flex-col items-center justify-center text-center p-8">
-                                    <div className="w-20 h-20 rounded-2xl bg-primary/10 flex items-center justify-center mb-6">
-                                        <Upload className="w-10 h-10 text-primary" />
-                                    </div>
-                                    <h3 className="text-xl font-semibold mb-2">Upload a document to start</h3>
-                                    <p className="text-foreground-muted text-sm max-w-sm mb-6">
-                                        Upload a PDF or TXT file, then ask questions about its content.
-                                        The RAG system will find relevant passages and generate grounded answers.
-                                    </p>
-                                    <button
-                                        onClick={() => fileInputRef.current?.click()}
-                                        className="btn-primary inline-flex items-center gap-2"
-                                        disabled={isUploading}
-                                    >
-                                        {isUploading ? (
-                                            <Loader2 className="w-5 h-5 animate-spin" />
-                                        ) : (
-                                            <Upload className="w-5 h-5" />
-                                        )}
-                                        Choose File
-                                    </button>
-                                </div>
-                            )}
-
-                            {messages.map((message) => (
-                                <motion.div
-                                    key={message.id}
-                                    initial={{ opacity: 0, y: 10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    className={cn(
-                                        "flex",
-                                        message.role === "user" ? "justify-end" : "justify-start"
-                                    )}
-                                >
-                                    <div
-                                        className={cn(
-                                            "chat-message",
-                                            message.role === "user"
-                                                ? "chat-message-user"
-                                                : "chat-message-assistant"
-                                        )}
-                                    >
-                                        <div className="prose prose-invert prose-sm max-w-none">
-                                            {message.content.split('\n').map((line, i) => (
-                                                <p key={i} className="mb-1 last:mb-0">{line}</p>
-                                            ))}
-                                        </div>
-
-                                        {/* Retrieved Contexts */}
-                                        {message.contexts && message.contexts.length > 0 && (
-                                            <div className="mt-4 pt-4 border-t border-border/50">
-                                                <button
-                                                    onClick={() => toggleContext(message.id)}
-                                                    className="flex items-center gap-2 text-xs text-foreground-muted hover:text-foreground"
-                                                >
-                                                    {expandedContexts.has(message.id) ? (
-                                                        <ChevronUp className="w-4 h-4" />
-                                                    ) : (
-                                                        <ChevronDown className="w-4 h-4" />
-                                                    )}
-                                                    {message.contexts.length} Retrieved Chunks
-                                                    {message.tokensUsed && (
-                                                        <span className="ml-2 opacity-60">
-                                                            ({message.tokensUsed} tokens)
-                                                        </span>
-                                                    )}
-                                                </button>
-
-                                                <AnimatePresence>
-                                                    {expandedContexts.has(message.id) && (
-                                                        <motion.div
-                                                            initial={{ height: 0, opacity: 0 }}
-                                                            animate={{ height: "auto", opacity: 1 }}
-                                                            exit={{ height: 0, opacity: 0 }}
-                                                            className="mt-3 space-y-3 overflow-hidden"
-                                                        >
-                                                            {message.contexts.map((ctx, idx) => (
-                                                                <div
-                                                                    key={idx}
-                                                                    className="p-3 bg-background rounded-lg border border-border text-sm"
-                                                                >
-                                                                    <div className="flex items-center justify-between mb-2">
-                                                                        <span className="text-xs text-foreground-muted">
-                                                                            {ctx.source} (Chunk {ctx.chunk_index})
-                                                                        </span>
-                                                                        <span className={cn("score-badge", getScoreColor(ctx.similarity_score))}>
-                                                                            {formatScore(ctx.similarity_score)}
-                                                                        </span>
-                                                                    </div>
-                                                                    <p className="text-foreground-muted text-xs leading-relaxed">
-                                                                        {ctx.content.length > 300
-                                                                            ? ctx.content.slice(0, 300) + "..."
-                                                                            : ctx.content}
-                                                                    </p>
-                                                                </div>
-                                                            ))}
-                                                        </motion.div>
-                                                    )}
-                                                </AnimatePresence>
-
-                                                {/* Sources */}
-                                                {message.sources && message.sources.length > 0 && (
-                                                    <div className="mt-3 flex flex-wrap gap-2">
-                                                        {message.sources.map((source) => (
-                                                            <span
-                                                                key={source}
-                                                                className="inline-flex items-center gap-1 px-2 py-1 bg-primary/10 text-primary rounded text-xs"
-                                                            >
-                                                                <FileText className="w-3 h-3" />
-                                                                {source}
-                                                            </span>
-                                                        ))}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        )}
-                                    </div>
-                                </motion.div>
-                            ))}
-
-                            {isQuerying && (
-                                <motion.div
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    className="flex justify-start"
-                                >
-                                    <div className="chat-message chat-message-assistant">
-                                        <div className="flex items-center gap-2">
-                                            <Loader2 className="w-4 h-4 animate-spin" />
-                                            <span className="text-sm text-foreground-muted">
-                                                Retrieving and generating...
-                                            </span>
-                                        </div>
-                                    </div>
-                                </motion.div>
-                            )}
-
-                            <div ref={messagesEndRef} />
-                        </div>
-
-                        {/* Error Display */}
-                        {error && (
-                            <div className="px-4 pb-2">
-                                <div className="flex items-center gap-2 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm">
-                                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                                    {error}
-                                    <button onClick={() => setError(null)} className="ml-auto">
-                                        <X className="w-4 h-4" />
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Input Area */}
-                        <div className="p-4 border-t border-border">
-                            <form onSubmit={handleSubmit} className="flex gap-3">
-                                <input
-                                    type="text"
-                                    value={inputValue}
-                                    onChange={(e) => setInputValue(e.target.value)}
-                                    placeholder={
-                                        uploadedDocs.length === 0
-                                            ? "Upload a document first..."
-                                            : "Ask a question about your documents..."
-                                    }
-                                    disabled={uploadedDocs.length === 0 || isQuerying}
-                                    className="input-field flex-1"
-                                />
-                                <button
-                                    type="submit"
-                                    disabled={!inputValue.trim() || uploadedDocs.length === 0 || isQuerying}
-                                    className="btn-primary px-4 disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                    {isQuerying ? (
-                                        <Loader2 className="w-5 h-5 animate-spin" />
-                                    ) : (
-                                        <Send className="w-5 h-5" />
-                                    )}
-                                </button>
-                            </form>
                         </div>
                     </div>
 
-                    {/* Sidebar */}
-                    <div className="space-y-4">
-                        {/* Upload Card */}
-                        <div className="glass-card p-5 rounded-2xl">
-                            <h3 className="font-semibold mb-4 flex items-center gap-2">
-                                <Upload className="w-5 h-5 text-primary" />
-                                Upload Documents
-                            </h3>
+                    {showSettings && (
+                        <div id="chat-settings" className="chat-settings">
+                            <div>
+                                <label htmlFor="top-k">Top-K retrieval</label>
+                                <span className="muted" style={{ fontSize: 13 }}>Number of chunks to retrieve</span>
+                            </div>
+                            <select id="top-k" value={topK} onChange={(e) => setTopK(Number(e.target.value))}>
+                                {[2, 3, 4, 5, 6, 8, 10].map((k) => <option key={k} value={k}>{k} chunks</option>)}
+                            </select>
+                        </div>
+                    )}
 
-                            <input
-                                ref={fileInputRef}
-                                type="file"
-                                accept=".pdf,.txt"
-                                onChange={handleFileUpload}
-                                className="hidden"
-                            />
+                    <div ref={logRef} className="chat-log" data-lenis-prevent aria-live="polite">
+                        {messages.length === 0 && !ready && (
+                            <div className="chat-empty">
+                                <h2>Upload a document to start.</h2>
+                                <p>
+                                    Add a PDF or TXT file, then ask about its content. The system finds the most relevant passages
+                                    and writes an answer grounded in them.
+                                </p>
+                                <button type="button" onClick={pickFile} className="btn btn-ink" disabled={isUploading}>
+                                    {isUploading ? <span className="spinner" aria-hidden="true" /> : <Icon name="upload-minimalistic-linear" size={18} />}
+                                    {isUploading ? "Processing…" : "Choose a file"}
+                                </button>
+                            </div>
+                        )}
 
-                            <button
-                                onClick={() => fileInputRef.current?.click()}
-                                disabled={isUploading}
-                                className="w-full p-4 border-2 border-dashed border-border hover:border-primary/50 rounded-xl 
-                         text-center transition-colors disabled:opacity-50"
-                            >
-                                {isUploading ? (
-                                    <div className="flex items-center justify-center gap-2">
-                                        <Loader2 className="w-5 h-5 animate-spin" />
-                                        <span className="text-sm">Processing...</span>
-                                    </div>
-                                ) : (
-                                    <div>
-                                        <FileText className="w-8 h-8 mx-auto mb-2 text-foreground-muted" />
-                                        <p className="text-sm font-medium">Click to upload</p>
-                                        <p className="text-xs text-foreground-muted">PDF or TXT</p>
-                                    </div>
-                                )}
+                        {messages.map((message) => (
+                            <div key={message.id} className={`msg msg-${message.role}`}>
+                                <span className="msg-role mono">{message.role === "user" ? "You" : message.role === "system" ? "Indexed" : "RagXGen"}</span>
+                                <div className="msg-body">
+                                    {message.content.split("\n").map((line, i) => <p key={i}>{line}</p>)}
+
+                                    {message.contexts && message.contexts.length > 0 && (
+                                        <div className="msg-meta">
+                                            <button
+                                                type="button"
+                                                className="msg-toggle"
+                                                aria-expanded={expandedContexts.has(message.id)}
+                                                aria-controls={`ctx-${message.id}`}
+                                                onClick={() => toggleContext(message.id)}
+                                            >
+                                                <Icon name="alt-arrow-down-linear" size={16} />
+                                                {message.contexts.length} retrieved chunks
+                                                {message.tokensUsed ? <span className="muted">· {message.tokensUsed} tokens</span> : null}
+                                            </button>
+
+                                            {expandedContexts.has(message.id) && (
+                                                <ol id={`ctx-${message.id}`} className="ctx-list">
+                                                    {message.contexts.map((ctx, idx) => (
+                                                        <li key={idx} className="ctx">
+                                                            <div className="ctx-head">
+                                                                <span>{ctx.source} · chunk {ctx.chunk_index}</span>
+                                                                <span className="ctx-score">{formatScore(ctx.similarity_score)}</span>
+                                                            </div>
+                                                            <div className="ctx-bar" data-level={getScoreLevel(ctx.similarity_score)} aria-hidden="true">
+                                                                <span style={{ width: `${Math.max(0, Math.min(1, ctx.similarity_score)) * 100}%` }} />
+                                                            </div>
+                                                            <p>{ctx.content.length > 300 ? `${ctx.content.slice(0, 300)}…` : ctx.content}</p>
+                                                        </li>
+                                                    ))}
+                                                </ol>
+                                            )}
+
+                                            {message.sources && message.sources.length > 0 && (
+                                                <div className="sources" aria-label="Sources">
+                                                    {message.sources.map((source) => (
+                                                        <span key={source}><Icon name="document-text-linear" size={13} />{source}</span>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
+
+                        {isQuerying && (
+                            <div className="msg msg-assistant">
+                                <span className="msg-role mono">RagXGen</span>
+                                <div className="msg-body chat-thinking"><span className="spinner" aria-hidden="true" /> Retrieving and generating…</div>
+                            </div>
+                        )}
+                    </div>
+
+                    {error && (
+                        <div className="chat-error" role="alert">
+                            <Icon name="danger-triangle-linear" size={18} />
+                            <span>{error}</span>
+                            <button type="button" className="icon-btn" onClick={() => setError(null)} aria-label="Dismiss error">
+                                <Icon name="close-circle-linear" size={18} />
                             </button>
                         </div>
+                    )}
 
-                        {/* Uploaded Documents */}
-                        {uploadedDocs.length > 0 && (
-                            <div className="glass-card p-5 rounded-2xl">
-                                <h3 className="font-semibold mb-4 flex items-center gap-2">
-                                    <CheckCircle className="w-5 h-5 text-accent-green" />
-                                    Indexed Documents
-                                </h3>
-                                <ul className="space-y-2">
-                                    {uploadedDocs.map((doc, idx) => (
-                                        <li
-                                            key={idx}
-                                            className="p-3 bg-background rounded-lg border border-border"
-                                        >
-                                            <p className="font-medium text-sm truncate">{doc.filename}</p>
-                                            <p className="text-xs text-foreground-muted">
-                                                {doc.chunks} chunks indexed
-                                            </p>
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-                        )}
+                    <form onSubmit={handleSubmit} className="chat-form">
+                        <label htmlFor="question" className="sr-only">Question</label>
+                        <input
+                            id="question"
+                            type="text"
+                            value={inputValue}
+                            onChange={(e) => setInputValue(e.target.value)}
+                            placeholder={ready ? "Ask a question about your documents…" : "Upload a document first…"}
+                            disabled={!ready || isQuerying}
+                            autoComplete="off"
+                        />
+                        <button type="submit" className="btn btn-ink" disabled={!inputValue.trim() || !ready || isQuerying} aria-label="Send question">
+                            {isQuerying ? <span className="spinner" aria-hidden="true" /> : <Icon name="plain-linear" size={18} />}
+                        </button>
+                    </form>
+                </section>
 
-                        {/* Session Info */}
-                        {sessionId && (
-                            <div className="glass-card p-5 rounded-2xl">
-                                <h3 className="font-semibold mb-3 text-sm text-foreground-muted">
-                                    Session Info
-                                </h3>
-                                <p className="font-mono text-xs text-foreground-muted break-all">
-                                    {sessionId}
-                                </p>
-                            </div>
-                        )}
+                <aside className="side" aria-label="Documents and session">
+                    <div className="side-card">
+                        <h2>Upload</h2>
+                        <button
+                            type="button"
+                            className="dropzone"
+                            onClick={pickFile}
+                            disabled={isUploading}
+                            aria-disabled={isUploading}
+                            data-drag={dragging || undefined}
+                            onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+                            onDragLeave={() => setDragging(false)}
+                            onDrop={onDrop}
+                        >
+                            {isUploading ? (
+                                <><span className="spinner" aria-hidden="true" /><b>Processing…</b></>
+                            ) : (
+                                <><Icon name="upload-minimalistic-linear" size={26} /><b>Click or drop a file</b><span>PDF or TXT</span></>
+                            )}
+                        </button>
+                    </div>
 
-                        {/* Tips */}
-                        <div className="glass-card p-5 rounded-2xl">
-                            <h3 className="font-semibold mb-3">💡 Tips</h3>
-                            <ul className="space-y-2 text-sm text-foreground-muted">
-                                <li>• Upload multiple documents for richer context</li>
-                                <li>• Ask specific questions for better results</li>
-                                <li>• Expand retrieved chunks to see sources</li>
-                                <li>• Adjust Top-K in settings for more/less context</li>
+                    {ready && (
+                        <div className="side-card">
+                            <h2>Indexed documents</h2>
+                            <ul className="doc-list">
+                                {uploadedDocs.map((doc, idx) => (
+                                    <li key={idx}><b title={doc.filename}>{doc.filename}</b><span>{doc.chunks} chunks indexed</span></li>
+                                ))}
                             </ul>
                         </div>
+                    )}
+
+                    {sessionId && (
+                        <div className="side-card">
+                            <h2>Session</h2>
+                            <p className="session-id">{sessionId}</p>
+                        </div>
+                    )}
+
+                    <div className="side-card">
+                        <h2>Tips</h2>
+                        <ul className="tips">
+                            <li>Upload several documents for richer context</li>
+                            <li>Specific questions retrieve better passages</li>
+                            <li>Expand retrieved chunks to check the sources</li>
+                            <li>Raise or lower Top-K in settings</li>
+                        </ul>
                     </div>
-                </div>
+                </aside>
             </div>
         </div>
     );

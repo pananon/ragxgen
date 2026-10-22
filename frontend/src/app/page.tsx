@@ -1,264 +1,180 @@
 "use client";
 
+import { Fragment, useLayoutEffect, useRef } from "react";
 import Link from "next/link";
-import { motion } from "framer-motion";
-import {
-    ArrowRight,
-    Database,
-    Brain,
-    Search,
-    FileText,
-    Zap,
-    Shield,
-    Sparkles,
-    ChevronRight,
-} from "lucide-react";
+import Icon from "@/components/ui/Icon";
+import RetrievalSpecimen from "@/components/home/RetrievalSpecimen";
+import { Chapter, FinalCta } from "@/components/page/Chapter";
+import { gsap, prefersReducedMotion } from "@/lib/motion";
 
-const features = [
+const moves = [
     {
-        icon: FileText,
-        title: "Document Upload",
-        description: "Upload PDFs and text files. Watch them transform into searchable vectors.",
+        title: "Upload & chunk",
+        text: "Drop in a PDF or text file. It is split into overlapping chunks so no idea is cut off at a boundary.",
+        spec: "RecursiveCharacterTextSplitter · 1000 chars",
     },
     {
-        icon: Search,
-        title: "Semantic Search",
-        description: "Ask natural language questions. Find relevant context instantly.",
+        title: "Embed & index",
+        text: "Each chunk becomes a vector that captures its meaning, stored in an index built for similarity search.",
+        spec: "text-embedding-3-small · FAISS",
     },
     {
-        icon: Brain,
-        title: "Grounded Answers",
-        description: "LLM responses backed by your actual documents. No hallucinations.",
+        title: "Retrieve top-K",
+        text: "Your question is embedded the same way, and the closest chunks come back with their similarity scores.",
+        spec: "Cosine similarity · K = 4 default",
     },
     {
-        icon: Database,
-        title: "Vector Storage",
-        description: "FAISS-powered similarity search. Fast and efficient retrieval.",
+        title: "Generate with sources",
+        text: "The model answers using only the retrieved passages, and the answer lists which documents it drew on.",
+        spec: "GPT-4o-mini · temperature 0.1",
     },
 ];
 
-const techStack = [
-    { name: "Next.js", category: "Frontend" },
-    { name: "FastAPI", category: "Backend" },
-    { name: "LangChain", category: "RAG" },
-    { name: "FAISS", category: "Vector DB" },
-    { name: "OpenAI", category: "LLM" },
+const claims = [
+    {
+        label: "Grounding",
+        title: "Fewer made-up answers",
+        text: "Responses are built from your documents, not the model's memory, which cuts down on confident fabrication.",
+    },
+    {
+        label: "Freshness",
+        title: "Data the model never saw",
+        text: "Ask about last week's release notes or a private policy file. Retrieval reaches past the training cutoff.",
+    },
+    {
+        label: "Attribution",
+        title: "Every answer shows its sources",
+        text: "Retrieved chunks, their scores and source files are visible, so an answer can be checked, not just trusted.",
+    },
+];
+
+const stack = [
+    { key: "Frontend", value: "Next.js 14", note: "App Router, TypeScript, Tailwind CSS" },
+    { key: "Backend", value: "FastAPI", note: "Async Python API with Pydantic validation" },
+    { key: "Orchestration", value: "LangChain", note: "Loading, splitting, retrieval and prompting" },
+    { key: "Vector store", value: "FAISS", note: "Exact inner-product search, one index per session" },
+    { key: "Models", value: "OpenAI-compatible", note: "GPT-4o-mini by default; DeepSeek and similar APIs supported" },
+];
+
+const guides = [
+    { href: "/what-is-rag", name: "What is RAG?", desc: "The problem it solves and the six-step pipeline." },
+    { href: "/architecture", name: "Architecture", desc: "Each component, why it exists, and its trade-offs." },
+    { href: "/evaluation", name: "Evaluation", desc: "Tuning parameters and the ways RAG fails." },
+    { href: "/about", name: "About the build", desc: "Design decisions and what production would add." },
+];
+
+const TITLE: { word: string; mark?: boolean }[] = [
+    { word: "Answers" }, { word: "you" }, { word: "can" }, { word: "trace" }, { word: "back" }, { word: "to" },
+    { word: "the", mark: true }, { word: "page.", mark: true },
 ];
 
 export default function HomePage() {
+    const hero = useRef<HTMLElement>(null);
+
+    // Intro: the headline rises word by word, then the highlighter strokes "the page".
+    // Copy and actions are never hidden, so the page is usable from the first frame.
+    useLayoutEffect(() => {
+        if (prefersReducedMotion() || !hero.current) return undefined;
+        const ctx = gsap.context(() => {
+            gsap.timeline({ defaults: { ease: "power3.out" } })
+                .fromTo(".hero-title .split-inner", { yPercent: 112 }, { yPercent: 0, duration: 0.95, stagger: 0.06, ease: "power4.out" }, 0.1)
+                .fromTo(".hero-title .mark-word .split-inner", { "--mark-size": "0%" }, { "--mark-size": "100%", duration: 0.6, stagger: 0.12, ease: "power2.inOut" }, 0.95)
+                .fromTo(".hero-copy .chapter-label", { autoAlpha: 0, y: 8 }, { autoAlpha: 1, y: 0, duration: 0.5 }, 0.2);
+        }, hero);
+        return () => ctx.revert();
+    }, []);
+
     return (
-        <div className="relative">
-            {/* Hero Section */}
-            <section className="section-container pt-20 pb-32">
-                <div className="max-w-4xl mx-auto text-center">
-                    {/* Badge */}
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.5 }}
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-primary text-sm font-medium mb-8"
-                    >
-                        <Sparkles className="w-4 h-4" />
-                        Hands-on RAG Implementation
-                    </motion.div>
-
-                    {/* Main Headline */}
-                    <motion.h1
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.5, delay: 0.1 }}
-                        className="text-5xl md:text-7xl font-bold leading-tight mb-6"
-                    >
-                        Ask questions.{" "}
-                        <span className="gradient-text">Get answers grounded</span> in your data.
-                    </motion.h1>
-
-                    {/* Subheadline */}
-                    <motion.p
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.5, delay: 0.2 }}
-                        className="text-xl md:text-2xl text-foreground-muted mb-10 max-w-2xl mx-auto"
-                    >
-                        A hands-on implementation of Retrieval-Augmented Generation.
-                        Upload documents, ask questions, see the magic happen.
-                    </motion.p>
-
-                    {/* CTA Buttons */}
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.5, delay: 0.3 }}
-                        className="flex flex-col sm:flex-row items-center justify-center gap-4"
-                    >
-                        <Link href="/demo" className="btn-primary inline-flex items-center gap-2 text-lg px-8 py-4">
-                            Try Live Demo
-                            <ArrowRight className="w-5 h-5" />
-                        </Link>
-                        <Link href="/architecture" className="btn-secondary inline-flex items-center gap-2 text-lg px-8 py-4">
-                            View Architecture
-                        </Link>
-                        <Link href="/what-is-rag" className="btn-secondary inline-flex items-center gap-2 text-lg px-8 py-4">
-                            Learn How It Works
-                        </Link>
-                    </motion.div>
-                </div>
-
-                {/* Hero Visual */}
-                <motion.div
-                    initial={{ opacity: 0, y: 40 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.7, delay: 0.4 }}
-                    className="mt-20 relative"
-                >
-                    <div className="glass-card p-8 rounded-3xl glow max-w-5xl mx-auto">
-                        <div className="flex flex-col md:flex-row items-center gap-8">
-                            {/* Query Input */}
-                            <div className="flex-1 w-full">
-                                <div className="bg-background rounded-xl p-4 border border-border">
-                                    <div className="flex items-center gap-3 text-foreground-muted">
-                                        <Search className="w-5 h-5" />
-                                        <span className="font-mono text-sm">
-                                            &quot;What are the key features of the product?&quot;
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Arrow */}
-                            <div className="hidden md:flex items-center">
-                                <ChevronRight className="w-8 h-8 text-primary animate-pulse" />
-                            </div>
-
-                            {/* Response Preview */}
-                            <div className="flex-1 w-full">
-                                <div className="bg-background rounded-xl p-4 border border-primary/30">
-                                    <p className="text-sm">
-                                        <span className="text-accent-green">✓</span> Based on product-docs.pdf:
-                                        <span className="text-foreground-muted ml-2">
-                                            &quot;The key features include real-time sync, AI-powered search...&quot;
-                                        </span>
-                                    </p>
-                                </div>
-                            </div>
+        <>
+            <section ref={hero} className="hero" aria-labelledby="hero-title">
+                <div className="wrap grid-12">
+                    <div className="hero-copy">
+                        <p className="chapter-label mono">Retrieval-augmented generation, built in the open</p>
+                        <h1 id="hero-title" className="hero-title" data-split>
+                            <span className="sr-only">Answers you can trace back to the page.</span>
+                            <span aria-hidden="true">
+                                {TITLE.map(({ word, mark }, index) => (
+                                    <Fragment key={word}>
+                                        <span className={`split-word ${mark ? "mark-word" : ""}`}><span className="split-inner">{word}</span></span>
+                                        {index < TITLE.length - 1 ? " " : ""}
+                                    </Fragment>
+                                ))}
+                            </span>
+                        </h1>
+                        <p className="hero-lede">
+                            RagXGen is a working RAG system. Upload a PDF or text file, ask a question, and see which passages were
+                            retrieved, how closely they matched, and where the answer came from.
+                        </p>
+                        <div className="hero-ctas">
+                            <Link href="/demo" className="btn btn-ink">Try the live demo <Icon name="arrow-right-linear" size={16} /></Link>
+                            <Link href="/what-is-rag" className="btn btn-line">How RAG works</Link>
                         </div>
                     </div>
-
-                    {/* Decorative elements */}
-                    <div className="absolute -z-10 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary/5 rounded-full blur-3xl" />
-                </motion.div>
+                    <div className="hero-specimen">
+                        <RetrievalSpecimen />
+                    </div>
+                </div>
             </section>
 
-            {/* Features Section */}
-            <section className="section-container py-24 border-t border-border">
-                <div className="text-center mb-16">
-                    <h2 className="text-3xl md:text-4xl font-bold mb-4">
-                        How RagXGen Works
-                    </h2>
-                    <p className="text-foreground-muted text-lg max-w-2xl mx-auto">
-                        A complete RAG pipeline from document upload to grounded answers
-                    </p>
-                </div>
+            <Chapter id="pipeline" label="01 — The pipeline" title="Four moves from file to grounded answer." note="The same steps run behind every question in the demo.">
+                <ol className="moves" data-reveal-stagger>
+                    {moves.map((move, index) => (
+                        <li key={move.title} className="move">
+                            <span className="move-num" aria-hidden="true">{String(index + 1).padStart(2, "0")}</span>
+                            <h3 className="move-title">{move.title}</h3>
+                            <p className="move-text">{move.text}</p>
+                            <p className="move-spec mono">{move.spec}</p>
+                        </li>
+                    ))}
+                </ol>
+            </Chapter>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    {features.map((feature, index) => (
-                        <motion.div
-                            key={feature.title}
-                            initial={{ opacity: 0, y: 20 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.5, delay: index * 0.1 }}
-                            viewport={{ once: true }}
-                            className="glass-card p-6 card-hover"
-                        >
-                            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
-                                <feature.icon className="w-6 h-6 text-primary" />
-                            </div>
-                            <h3 className="font-semibold text-lg mb-2">{feature.title}</h3>
-                            <p className="text-foreground-muted text-sm">{feature.description}</p>
-                        </motion.div>
+            <Chapter id="why" dark label="02 — Why retrieval" title="A model that reads before it answers.">
+                <div className="claims" data-reveal-stagger>
+                    {claims.map((claim) => (
+                        <article key={claim.title} className="claim">
+                            <p className="mono">{claim.label}</p>
+                            <h3>{claim.title}</h3>
+                            <p>{claim.text}</p>
+                        </article>
                     ))}
                 </div>
-            </section>
+            </Chapter>
 
-            {/* Why RAG Section */}
-            <section className="section-container py-24">
-                <div className="grid md:grid-cols-2 gap-16 items-center">
-                    <div>
-                        <h2 className="text-3xl md:text-4xl font-bold mb-6">
-                            Why Retrieval-Augmented Generation?
-                        </h2>
-                        <div className="space-y-6">
-                            <div className="flex gap-4">
-                                <div className="w-10 h-10 rounded-lg bg-accent-green/10 flex items-center justify-center flex-shrink-0">
-                                    <Shield className="w-5 h-5 text-accent-green" />
-                                </div>
-                                <div>
-                                    <h3 className="font-semibold mb-1">Reduce Hallucinations</h3>
-                                    <p className="text-foreground-muted text-sm">
-                                        Ground LLM responses in actual documents, not training data fantasies.
-                                    </p>
-                                </div>
-                            </div>
-                            <div className="flex gap-4">
-                                <div className="w-10 h-10 rounded-lg bg-accent-cyan/10 flex items-center justify-center flex-shrink-0">
-                                    <Zap className="w-5 h-5 text-accent-cyan" />
-                                </div>
-                                <div>
-                                    <h3 className="font-semibold mb-1">Access Fresh Data</h3>
-                                    <p className="text-foreground-muted text-sm">
-                                        Query documents from today, not just the LLM&apos;s training cutoff.
-                                    </p>
-                                </div>
-                            </div>
-                            <div className="flex gap-4">
-                                <div className="w-10 h-10 rounded-lg bg-accent-purple/10 flex items-center justify-center flex-shrink-0">
-                                    <Database className="w-5 h-5 text-accent-purple" />
-                                </div>
-                                <div>
-                                    <h3 className="font-semibold mb-1">Cite Your Sources</h3>
-                                    <p className="text-foreground-muted text-sm">
-                                        Know exactly which documents informed each answer.
-                                    </p>
-                                </div>
-                            </div>
+            <Chapter id="stack" label="03 — Built with" title="A small, honest stack." note="Every piece is swappable; the trade-offs are written up in the About page.">
+                <dl className="ledger" data-reveal-stagger>
+                    {stack.map((row) => (
+                        <div key={row.key} className="ledger-row">
+                            <dt className="ledger-key mono">{row.key}</dt>
+                            <dd className="ledger-value">{row.value}</dd>
+                            <dd className="ledger-note">{row.note}</dd>
                         </div>
-                    </div>
+                    ))}
+                </dl>
+            </Chapter>
 
-                    <div className="glass-card p-8 rounded-3xl">
-                        <h4 className="font-semibold mb-4 text-sm text-foreground-muted uppercase tracking-wider">
-                            Tech Stack
-                        </h4>
-                        <div className="grid grid-cols-2 gap-4">
-                            {techStack.map((tech) => (
-                                <div
-                                    key={tech.name}
-                                    className="p-4 rounded-xl bg-background border border-border"
-                                >
-                                    <p className="font-semibold">{tech.name}</p>
-                                    <p className="text-sm text-foreground-muted">{tech.category}</p>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-            </section>
+            <Chapter id="guides" label="04 — Read further" title="Understand it, then break it.">
+                <nav aria-label="Guides" className="index-list" data-reveal-stagger>
+                    {guides.map((guide, index) => (
+                        <Link key={guide.href} href={guide.href} className="index-link">
+                            <span className="mono">{String(index + 1).padStart(2, "0")}</span>
+                            <span className="index-name">
+                                <span>{guide.name}</span>
+                                <span className="index-desc">{guide.desc}</span>
+                            </span>
+                            <Icon name="arrow-right-linear" size={32} />
+                        </Link>
+                    ))}
+                </nav>
+            </Chapter>
 
-            {/* CTA Section */}
-            <section className="section-container py-24">
-                <div className="glass-card p-12 rounded-3xl text-center glow">
-                    <h2 className="text-3xl md:text-4xl font-bold mb-4">
-                        Ready to see RAG in action?
-                    </h2>
-                    <p className="text-foreground-muted text-lg mb-8 max-w-xl mx-auto">
-                        Upload your documents and ask questions. Experience the power of
-                        retrieval-augmented generation first-hand.
-                    </p>
-                    <Link href="/demo" className="btn-primary inline-flex items-center gap-2 text-lg px-8 py-4">
-                        Launch Live Demo
-                        <ArrowRight className="w-5 h-5" />
-                    </Link>
-                </div>
-            </section>
-        </div>
+            <FinalCta
+                label="05 — Live demo"
+                title="Bring a document. Ask it anything."
+                text="Upload a PDF or TXT file and question it. Every answer comes with the chunks it was built from."
+                href="/demo"
+                action="Open the demo"
+            />
+        </>
     );
 }
